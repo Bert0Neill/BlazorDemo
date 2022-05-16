@@ -1,0 +1,36 @@
+﻿@inherits LayoutComponentBase
+
+<div class="page">
+    <div class="sidebar">
+        <NavMenu />
+    </div>
+
+    <main>
+        <div class="top-row px-4">
+            <a href="https://docs.microsoft.com/aspnet/" target="_blank">About</a>
+        </div>
+
+        <MudThemeProvider />
+        <MudDialogProvider />
+        <MudSnackbarProvider />
+
+        @* <article class="content px-4">
+            @Body
+            </article>*@
+
+        <ErrorBoundary @ref="errorBoundary">
+            @Body
+        </ErrorBoundary>
+
+    </main>
+</div>
+
+@code {
+    private ErrorBoundary? errorBoundary;
+    private string errorMessage = string.Empty;
+
+    protected override void OnParametersSet()
+    {
+        errorBoundary?.Recover();
+    }
+}

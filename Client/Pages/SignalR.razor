@@ -1,0 +1,210 @@
+﻿@page "/signalr"
+@inject IJSRuntime JSRuntime
+@inject NavigationManager NavigationManager
+@inject Blazored.LocalStorage.ILocalStorageService localStorage
+@inject ILogger<SignalR> logger
+@inject ClientHub clientHub
+@inject HttpClient Http
+
+@using BlazorWASMDemo.Client.SignalR
+@using BlazorWASMDemo.Shared.Models
+@using BlazorWASMDemo.Shared.SignalR
+@using Microsoft.AspNetCore.SignalR.Client
+@using System.ComponentModel.DataAnnotations
+@using Newtonsoft.Json
+@using System.Text
+
+<!--display custom spinner when loading-->
+@if (!userInfo.IsRegistered)
+{
+    <h3> Register your username:</h3>
+    <EditForm Model="@model" OnValidSubmit="OnValidSubmit">
+        <DataAnnotationsValidator />
+        <MudGrid>
+            <MudItem xs="12" sm="7">
+                <MudCard>
+                    <MudCardContent>
+                        <MudTextField Label="First name" HelperText="Max. 8 characters"
+                                  @bind-Value="model.Username" For="@(() => model.Username)" />
+                        <MudTextField Label="Company" Class="mt-3" HelperText="Max. 20 characters"
+                                  @bind-Value="model.Company" For="@(() => model.Company)" />
+                    </MudCardContent>
+                    <MudCardActions>
+                        <MudButton ButtonType="ButtonType.Submit" Variant="Variant.Filled" Color="Color.Primary" Class="ml-auto">Register</MudButton>
+                    </MudCardActions>
+                </MudCard>
+            </MudItem>
+            <MudItem xs="12" sm="5">
+                <MudPaper Class="pa-4 mud-height-full">
+                    <MudText Typo="Typo.subtitle2">Validation Summary</MudText>
+                    @if (success)
+                    {
+                        <MudText Color="Color.Success">Success</MudText>
+                    }
+                    else
+                    {
+                        <MudText Color="@Color.Error">
+                            <ValidationSummary />
+                        </MudText>
+                    }
+                </MudPaper>
+            </MudItem>
+            <MudItem xs="12">
+                <MudText Typo="Typo.body2" Align="Align.Center">
+                    Fill out the form correctly to see the success message.
+                </MudText>
+            </MudItem>
+        </MudGrid>
+    </EditForm>
+}
+else
+{
+    // user has registered
+    @if (isShowSpinner)
+    {
+        <!--display custom spinner when loading-->
+        <div class="loading-section">
+            <div class="short-description">Waiting on SignalR connection to complete....</div>
+            <div class="loader mt-5">
+                <div class="loader-dot dot1"></div>
+                <div class="loader-dot dot2"></div>
+                <div class="loader-dot dot3"></div>
+            </div>
+        </div>
+    }
+    else
+    {
+        <h3> SignalR - Latest Stock Market Results:</h3>
+
+        <div>
+            <MudPaper Class="pa-4">
+                <MudChart ChartType="ChartType.Pie" InputData="@data" InputLabels="@labels" Width="300px" Height="300px" />
+            </MudPaper>
+
+            <MudPaper Class="pa-4">
+                <MudChart ChartType="ChartType.Donut" Width="300px" Height="300px" InputData="@data" InputLabels="@labels">
+                    <CustomGraphics>
+                        <text class="donut-inner-text" x="47%" y="35%" dominant-baseline="middle" text-anchor="middle" fill="black" font-family="Helvetica" font-size="2">Total</text>
+                        <text class="donut-inner-text" x="47%" y="50%" dominant-baseline="middle" text-anchor="middle" fill="black" font-family="Helvetica" font-size="5">@data?.Sum().ToString()</text>
+                    </CustomGraphics>
+                </MudChart>
+            </MudPaper>
+        </div>        
+
+        <MudButton Disabled="@buttonSpinner" OnClick="ProcessSomething" Variant="Variant.Filled" Color="Color.Primary" FullWidth="true">
+            @if (buttonSpinner)
+            {
+                <MudProgressCircular Class="ms-n1" Size="Size.Small" Indeterminate="true" />
+                <MudText Class="ms-2">Processing</MudText>
+            }
+            else
+            {
+                <MudText>Push Updates To All</MudText>
+            }
+        </MudButton>
+    }
+}
+
+@code {
+
+    private ChartOptions options = new ChartOptions();
+    private bool isShowSpinner = true;
+    SignalrData signalrData = new ();
+    double[]? data;
+    string[]? labels;
+    UserInfo userInfo = new();
+    RegisterAccountForm model = new RegisterAccountForm();
+    bool success;
+    bool buttonSpinner = false;
+
+    async Task ProcessSomething()
+    {
+        buttonSpinner = true;
+
+        await PushUpdates();
+        
+        await Task.Delay(500); // button spinner
+
+        buttonSpinner = false;
+    }
+
+    private async Task PushUpdates()
+    {
+        HttpResponseMessage  response = await Http.GetAsync("SignalR/UpdateReports");
+    }
+
+    private async Task OnValidSubmit(EditContext context)
+    {
+        // call SignalR with form data
+        if (clientHub.hubConnection is not null)
+        {
+            this.isShowSpinner = true;
+
+            // update DTO
+            userInfo.UserName = model.Username;
+            userInfo.Company = model.Company;
+            userInfo.IsRegistered = true;
+            userInfo.ConnectionId = clientHub.hubConnection.ConnectionId; // get session ID
+            
+            //await localStorage.SetItemAsync("BlazorDemo_UserInfo", userInfo); // update cache    
+
+            var json = JsonConvert.SerializeObject(userInfo, Formatting.Indented);
+
+            HttpResponseMessage  response = await Http.PostAsJsonAsync<string>("SignalR/UpdateRegisteredUser", json);
+            if (response.IsSuccessStatusCode)
+            {
+                var responseContent = await response.Content.ReadAsStringAsync();
+                userInfo = JsonConvert.DeserializeObject<UserInfo>(responseContent);
+
+                await localStorage.SetItemAsync("BlazorDemo_UserInfo", userInfo); // update cache            
+
+                this.isShowSpinner = false;
+            }
+        }
+
+        StateHasChanged();
+    }
+
+    protected override async void OnInitialized()
+    {
+        userInfo = await localStorage.GetItemAsync<UserInfo>("BlazorDemo_UserInfo");
+
+        // reporting options
+        options.InterpolationOption = InterpolationOption.NaturalSpline;
+        options.YAxisFormat = "c2";
+        
+        clientHub?.hubConnection?.On<UserInfo>("PushUserInfoToCaller", (userInfo) =>
+        {
+            localStorage.SetItemAsync("BlazorDemo_UserInfo", userInfo);
+        });
+
+        clientHub?.hubConnection?.On<string>("ReceiveReportsMessage", (message) =>
+        {
+            logger.LogInformation(message);
+        });
+
+
+        // execute code when you receive a call from the server to this method "ReceivedStockUpdates"
+        clientHub?.hubConnection?.On<SignalrData>("ReceivedStockUpdates", (stockData) =>
+        {
+            if (!userInfo.IsRegistered) return; // user must be registered before updating reports
+
+            // fornat data for reports
+            this.data = stockData.Data.Select(n => Convert.ToDouble(n)).ToArray();
+            this.labels = stockData.Labels;
+            this.isShowSpinner = false;            
+
+            StateHasChanged();
+        });
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (clientHub.hubConnection is not null)
+        {
+            await clientHub.hubConnection.DisposeAsync();
+        }
+    }
+
+    public bool IsConnected => clientHub.hubConnection?.State == HubConnectionState.Connected;
+}

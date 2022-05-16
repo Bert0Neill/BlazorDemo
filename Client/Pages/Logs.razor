@@ -1,0 +1,45 @@
+﻿@page "/logs"
+@inject HttpClient Http
+@inject ILogger<Logs> logger
+@using BlazorWASMDemo.Shared.Extensions
+@using BlazorWASMDemo.Shared.Models
+@using Newtonsoft.Json
+
+<h3>Logging Extension Used On Client & Server</h3>
+<div style="text-align:center;">
+    The buttons below will fire off exceptions within server's API. Run in debug mode to capture exceptions on the server side.
+    <MudDivider DividerType="DividerType.Inset" />
+    <MudLink Href="https://blazortutorials.scm.azurewebsites.net/DebugConsole/?shell=powershell">View logs on Azure</MudLink>
+
+    <MudDivider DividerType="DividerType.Inset" />
+
+    <img src="images/LoggingExtension.png" />
+
+    <MudDivider DividerType="DividerType.Inset" />
+
+    <MudButton Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Save" Color="Color.Info" OnClick="LogServer">Log on server</MudButton>
+    <MudButton Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Save" Color="Color.Warning" OnClick="LogClient">Log on client</MudButton>
+
+</div>
+
+@code {
+
+    private void LogClient()
+    {
+        logger.CaptureExecutionTimeAsTrace("LogClient", () =>
+        {
+            Thread.Sleep(1000); // perform a server action
+        });
+    }
+
+    private async Task LogServer()
+    {
+        HttpResponseMessage response = await Http.GetAsync("Logging/LogOnServer");
+
+        if (response.IsSuccessStatusCode)
+        {
+            var responseContent = await response.Content.ReadAsStringAsync();
+            logger.LogInformation($"Server response - {responseContent}");
+        }
+    }
+}

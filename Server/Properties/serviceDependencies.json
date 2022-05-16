@@ -1,0 +1,16 @@
+{
+  "dependencies": {
+    "signalr1": {
+      "type": "signalr",
+      "connectionId": "Azure:SignalR:ConnectionString"
+    },
+    "mssql1": {
+      "type": "mssql",
+      "connectionId": "ConnectionStrings:MyMusicShopConnection"
+    },
+    "secrets1": {
+      "type": "secrets",
+      "connectionId": "VaultUri"
+    }
+  }
+}

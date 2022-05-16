@@ -1,0 +1,38 @@
+{
+  "dependencies": {
+    "mssql1": {
+      "restored": true,
+      "restoreTime": "2022-05-05T14:32:21.9669883Z"
+    },
+    "secrets1": {
+      "restored": true,
+      "restoreTime": "2022-05-11T11:15:54.1728808Z"
+    },
+    "signalr1": {
+      "restored": true,
+      "restoreTime": "2022-05-11T11:15:59.348656Z"
+    }
+  },
+  "parameters": {
+    "mssql1.subscriptionId": {
+      "Name": "mssql1.subscriptionId",
+      "Type": "subscription",
+      "Value": "a48844f0-0f04-4c28-97c0-2982510b491e"
+    },
+    "signalr1.resourceGroupName": {
+      "Name": "signalr1.resourceGroupName",
+      "Type": "resourceGroup",
+      "Value": "rg-open-dev-westuk-001"
+    },
+    "mssql1.resourceGroupName": {
+      "Name": "mssql1.resourceGroupName",
+      "Type": "resourceGroup",
+      "Value": "rg-open-dev-westuk-001"
+    },
+    "signalr1.subscriptionId": {
+      "Name": "signalr1.subscriptionId",
+      "Type": "subscription",
+      "Value": "a48844f0-0f04-4c28-97c0-2982510b491e"
+    }
+  }
+}

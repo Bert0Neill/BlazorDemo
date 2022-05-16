@@ -1,0 +1,92 @@
+﻿@page "/"
+@using BlazorWASMDemo.Client.SignalR
+@using BlazorWASMDemo.Shared.Extensions
+@using BlazorWASMDemo.Shared.SignalR
+@using Microsoft.AspNetCore.SignalR.Client
+@using Newtonsoft.Json
+@inject NavigationManager NavigationManager
+@inject ClientHub clientHub
+@inject IJSRuntime JSRuntime
+@inject Blazored.LocalStorage.ILocalStorageService localStorage
+@inject HttpClient Http
+@inject ILogger<Index> logger
+
+<PageTitle>Blazor Demo</PageTitle>
+
+<h1><u>Blazor Demo Topics</u></h1>
+<ol>
+    <li>Solution Breakdown</li>
+    <li>WASM Background</li>
+    <li>SignalR</li>
+    <li>Server Global Exception (Middleware)</li>
+    <li>
+        Logging
+        <ul>
+            <li>Client & Server</li>
+            <li>Shared Extension - logs fnx. duration</li>
+        </ul>
+    </li>
+    <li>
+        Entity Framework
+        <ul>
+            <li>dbContextFactory</li>
+            <li>dbContext & Model Generation GUI - Extension</li>
+            <li>Scaffold a SQL Stored Procedure</li>
+        </ul>
+    </li>
+    <li>Handle Concurrency</li>
+    <li>
+        Azure
+        <ul>
+            <li>Publish AppService to Azure</li>
+            <li>Debug Azure From Visual Studio 2022</li>
+        </ul>
+    </li>
+    <li>Localisation</li>
+    <li>Unit Testing</li>
+    <li>Decouple Razor Component & Code Behind</li>
+    <li>Client Inherit Interface (OOD)</li>
+    <li>Threading & Parallel programming</li>
+    <li>Model Validation</li>
+    <li>Common Controls</li>
+</ol>
+
+@code {
+    private HubConnection? hubConnection;
+    private List<string> messages = new List<string>();
+    private string? userInput;
+    private string? messageInput;
+
+    protected override async Task OnInitializedAsync()
+    {
+        // establish connection to SignalR hub
+        hubConnection = new HubConnectionBuilder()
+                     .WithUrl(NavigationManager.ToAbsoluteUri("/serverhub"))
+                     .Build();
+
+        clientHub.hubConnection = hubConnection;
+
+        await hubConnection.StartAsync();
+
+        // register session with SignalR
+        if (clientHub is not null)
+        {
+            //register a callback method from server for this page
+            clientHub?.hubConnection?.On<string>("LandingPageReceiveMessage", (message) =>
+            {
+                logger.LogInformation(message);
+            });
+
+            UserInfo userInfo = new() { UniqueID = clientHub.UniqueID, ConnectionId = clientHub.hubConnection.ConnectionId };
+            var json = JsonConvert.SerializeObject(userInfo, Formatting.Indented);
+            var response = await Http.PostAsJsonAsync<string>("SignalR/RegisterUser", json);
+
+            if (response.IsSuccessStatusCode)
+            {
+                string responseContent = await response.Content.ReadAsStringAsync();
+                userInfo = JsonConvert.DeserializeObject<UserInfo>(responseContent);
+                await localStorage.SetItemAsync("BlazorDemo_UserInfo", userInfo); // update cache
+            }            
+        }
+    }
+}

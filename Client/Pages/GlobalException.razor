@@ -1,0 +1,92 @@
+﻿@page "/global_exceptions"
+@using BlazorWASMDemo.Shared.Extensions
+@using BlazorWASMDemo.Shared.Models
+@using Newtonsoft.Json
+@using Newtonsoft.Json.Linq
+@inject HttpClient Http
+@inject ILogger<GlobalException> logger
+
+<h3>Global Exception Middleware (Server)</h3>
+<div style="text-align:center;">
+    The buttons below will fire off exceptions within server's API. Run in debug mode to capture exceptions on the server side.
+    <MudDivider DividerType="DividerType.Inset" />
+    <MudLink Href="https://blazortutorials.scm.azurewebsites.net/DebugConsole/?shell=powershell">View logs on Azure</MudLink>
+
+    <MudDivider DividerType="DividerType.Inset" />
+
+    <img src="images/GlobalExceptionCode.png" />
+
+    <MudDivider DividerType="DividerType.Inset" />
+
+    <MudButton Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Save" Color="Color.Error" OnClick=GlobalException_General>Divide by zero - Exception</MudButton>
+    <MudButton Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Save" Color="Color.Error" OnClick=GlobalException_HandleCustom>Custom Version1 - Exception</MudButton>
+    <MudButton Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Save" Color="Color.Error" OnClick=GlobalException_HandleYourself>No Key Found - Exception</MudButton>
+
+    <MudDivider DividerType="DividerType.Inset" />
+    <br />
+
+    <MudButton Variant="Variant.Filled" StartIcon="@Icons.Material.Filled.Save" Color="Color.Warning" OnClick=UnhandledClientlException>Client - Unhandled Exception</MudButton>
+
+    @if (isError)
+    {
+        <MudAlert Severity="Severity.Error">@errorMessage</MudAlert>
+    }
+
+</div>
+
+@code {
+    bool isError = false;
+    string errorMessage = string.Empty;
+
+    private void UnhandledClientlException()
+    {
+        throw new InvalidOperationException("Client exception thrown and not handled by your custom code");
+    }
+
+    private async Task GlobalException_General()
+    {
+        isError = false;
+        HttpResponseMessage response = await Http.GetAsync("Exceptions/GlobalExceptionHandle_General");
+
+        if (!response.IsSuccessStatusCode)
+        {
+            isError = true;
+            var responseContent = await response.Content.ReadAsStringAsync();
+            JObject jsonObject = JObject.Parse(responseContent);
+            errorMessage = $"Server response - {jsonObject["message"]}";
+            logger.LogInformation(errorMessage);
+        }
+    }
+
+    private async Task GlobalException_HandleCustom()
+    {
+        isError = false;
+        HttpResponseMessage response = await Http.GetAsync("Exceptions/GlobalExceptionHandle_Custom");
+
+        if (!response.IsSuccessStatusCode)
+        {
+            isError = true;
+            var responseContent = await response.Content.ReadAsStringAsync();
+            JObject jsonObject = JObject.Parse(responseContent);
+            errorMessage = $"Server response - {jsonObject["message"]}";
+            logger.LogInformation(errorMessage);
+        }
+    }
+
+    private async Task GlobalException_HandleYourself()
+    {
+        isError = false;
+        HttpResponseMessage response = await Http.GetAsync("Exceptions/GlobalExceptionHandle_Yourself");
+
+        if (!response.IsSuccessStatusCode)
+        {
+            isError = true;
+            var responseContent = await response.Content.ReadAsStringAsync();
+            errorMessage = $"Server response - {responseContent}";
+            JObject jsonObject = JObject.Parse(responseContent);
+            errorMessage = $"Server response - {jsonObject["message"]}";
+            logger.LogInformation(errorMessage);
+        }
+    }
+
+}

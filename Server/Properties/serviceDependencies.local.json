@@ -1,0 +1,19 @@
+{
+  "dependencies": {
+    "mssql1": {
+      "secretStore": null,
+      "resourceId": "/subscriptions/[parameters('subscriptionId')]/resourceGroups/[parameters('resourceGroupName')]/providers/Microsoft.Sql/servers/sql-server-azure-bertoneill/databases/MyMusicShop",
+      "type": "mssql.azure",
+      "connectionId": "ConnectionStrings:MyMusicShopConnection"
+    },
+    "secrets1": {
+      "type": "secrets.user"
+    },
+    "signalr1": {
+      "secretStore": "LocalSecretsFile",
+      "resourceId": "/subscriptions/[parameters('subscriptionId')]/resourceGroups/[parameters('resourceGroupName')]/providers/Microsoft.SignalRService/SignalR/BlazorWASMDemoServer",
+      "type": "signalr.azure",
+      "connectionId": "Azure:SignalR:ConnectionString"
+    }
+  }
+}

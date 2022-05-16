@@ -1,0 +1,21 @@
+﻿@using Microsoft.Extensions.Logging
+@inject ILogger<Error> Logger
+
+<CascadingValue Value="this">
+    @ChildContent    
+</CascadingValue>
+
+@code {
+    [Parameter]
+    public RenderFragment? ChildContent { get; set; }
+
+    /// <summary>
+    /// Format exception message in one place 
+    /// </summary>
+    /// <param name="ex"></param>
+    public void ProcessError(Exception ex)
+    {
+        string errorMessage = $"Error:ProcessError - Type: {ex.GetType()} Message: {ex.Message} Stack: {ex.StackTrace}";        
+        Logger.LogError(errorMessage);
+    }
+}
